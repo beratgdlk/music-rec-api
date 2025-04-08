@@ -66,29 +66,18 @@ export const getPlaylists = async (req: Request, res: Response) => {
   }
 };
 
-// Kullanıcının çalma listelerini getir
+// Kullanıcının kendi çalma listelerini getir
 export const getUserPlaylists = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
-    const currentUserId = req.userId;
+    const userId = req.userId;
     
-    if (!currentUserId) {
-      return res.status(401).json({ error: 'Yetkilendirme hatası' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
-    
-    // ID'nin sayı olduğundan emin ol
-    const numericUserId = parseInt(userId);
-    if (isNaN(numericUserId)) {
-      return res.status(400).json({ error: 'Geçersiz kullanıcı ID formatı' });
-    }
-
-    // Kendi çalma listelerini görüyorsa tümünü göster, aksi halde sadece herkese açık olanları
-    const isOwnPlaylist = numericUserId === currentUserId;
     
     const playlists = await prisma.playlist.findMany({
       where: {
-        ownerId: numericUserId,
-        ...(isOwnPlaylist ? {} : { isPublic: true })
+        ownerId: userId
       },
       include: {
         _count: {
@@ -100,8 +89,8 @@ export const getUserPlaylists = async (req: Request, res: Response) => {
 
     res.json(playlists);
   } catch (error) {
-    console.error('Kullanıcı çalma listelerini getirme hatası:', error);
-    res.status(500).json({ error: 'Sunucu hatası' });
+    console.error('Error fetching user playlists:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
@@ -437,5 +426,39 @@ export const removeSongFromPlaylist = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Şarkı çıkarma hatası:', error);
     res.status(500).json({ error: 'Sunucu hatası' });
+  }
+};
+
+// Öne çıkan çalma listelerini getir
+export const getFeaturedPlaylists = async (req: Request, res: Response) => {
+  try {
+    // Rastgele 5 popüler çalma listesi getir
+    const featuredPlaylists = await prisma.playlist.findMany({
+      where: { 
+        isPublic: true 
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profileImage: true
+          }
+        },
+        _count: {
+          select: { songs: true }
+        }
+      },
+      orderBy: [
+        { updatedAt: 'desc' }
+      ],
+      take: 5
+    });
+
+    res.json(featuredPlaylists);
+  } catch (error) {
+    console.error('Featured playlists error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 }; 

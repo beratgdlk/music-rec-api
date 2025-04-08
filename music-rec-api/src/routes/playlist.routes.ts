@@ -1,7 +1,7 @@
 import express from 'express';
 import { 
   createPlaylist,
-  getAllPlaylists,
+  getPlaylists,
   getPlaylistById,
   updatePlaylist,
   deletePlaylist,
@@ -21,7 +21,7 @@ router.use(authenticate);
 router.post('/', createPlaylist);
 
 // Get all public playlists
-router.get('/', getAllPlaylists);
+router.get('/', getPlaylists);
 
 // Get featured playlists
 router.get('/featured', getFeaturedPlaylists);
