@@ -27,17 +27,17 @@ app.use('/api/tracks', trackRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ message: 'Spotify API çalışıyor!' });
+  res.json({ message: 'Music API is running!' });
 });
 
 // Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Sunucu hatası!' });
+  res.status(500).json({ error: 'Server error!' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server http://localhost:${PORT} adresinde çalışıyor`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
 
 export { prisma }; 
