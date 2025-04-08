@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Kullanıcı modeli
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  username      String        @unique
+  password      String
+  name          String?
+  profileImage  String?
+  isAdmin       Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  playlists     Playlist[]
+  likedSongs    LikedSong[]
+  reviews       Review[]
+  ratings       Rating[]
+  friends       Friendship[]  @relation("userFriends")
+  friendsOf     Friendship[]  @relation("friendsOfUser")
+  wishlist      Wishlist[]
+}
+
+// Sanatçı modeli
+model Artist {
+  id            Int           @id @default(autoincrement())
+  name          String
+  bio           String?       @db.Text
+  profileImage  String?
+  country       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  albums        Album[]
+  songs         Song[]
+  genres        ArtistGenre[]
+}
+
+// Albüm modeli
+model Album {
+  id            Int           @id @default(autoincrement())
+  title         String
+  coverImage    String?
+  releaseYear   Int
+  type          AlbumType     @default(ALBUM)
+  rating        Float         @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  artist        Artist        @relation(fields: [artistId], references: [id])
+  artistId      Int
+  songs         Song[]
+  genres        AlbumGenre[]
+  reviews       Review[]
+  ratings       Rating[]
+}
+
+// Şarkı modeli
+model Song {
+  id            Int           @id @default(autoincrement())
+  title         String
+  duration      Int          // Saniye cinsinden süre
+  trackNumber   Int
+  audioUrl      String
+  rating        Float         @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  album         Album         @relation(fields: [albumId], references: [id])
+  albumId       Int
+  artist        Artist        @relation(fields: [artistId], references: [id])
+  artistId      Int
+  likedBy       LikedSong[]
+  playlists     SongPlaylist[]
+  reviews       Review[]
+  ratings       Rating[]
+  wishlist      Wishlist[]
+}
+
+// Çalma Listesi modeli
+model Playlist {
+  id            Int           @id @default(autoincrement())
+  name          String
+  description   String?       @db.Text
+  coverImage    String?
+  isPublic      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // İlişkiler
+  owner         User          @relation(fields: [ownerId], references: [id])
+  ownerId       Int
+  songs         SongPlaylist[]
+}
+
+// Tür modeli
+model Genre {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  artists       ArtistGenre[]
+  albums        AlbumGenre[]
+}
+
+// Değerlendirme modeli
+model Review {
+  id            Int           @id @default(autoincrement())
+  content       String        @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  // İlişkiler
+  user          User          @relation(fields: [userId], references: [id])
+  userId        Int
+  song          Song?         @relation(fields: [songId], references: [id])
+  songId        Int?
+  album         Album?        @relation(fields: [albumId], references: [id])
+  albumId       Int?
+
+  @@unique([userId, songId])
+  @@unique([userId, albumId])
+}
+
+// Puanlama modeli
+model Rating {
+  id            Int           @id @default(autoincrement())
+  score         Int          // 1-5 arası puan
+  createdAt     DateTime      @default(now())
+  
+  // İlişkiler
+  user          User          @relation(fields: [userId], references: [id])
+  userId        Int
+  song          Song?         @relation(fields: [songId], references: [id])
+  songId        Int?
+  album         Album?        @relation(fields: [albumId], references: [id])
+  albumId       Int?
+
+  @@unique([userId, songId])
+  @@unique([userId, albumId])
+}
+
+// İstek listesi modeli
+model Wishlist {
+  id            Int           @id @default(autoincrement())
+  user          User          @relation(fields: [userId], references: [id])
+  userId        Int
+  song          Song          @relation(fields: [songId], references: [id])
+  songId        Int
+  addedAt       DateTime      @default(now())
+
+  @@unique([userId, songId])
+}
+
+// Arkadaşlık modeli
+model Friendship {
+  id            Int           @id @default(autoincrement())
+  user          User          @relation("userFriends", fields: [userId], references: [id])
+  userId        Int
+  friend        User          @relation("friendsOfUser", fields: [friendId], references: [id])
+  friendId      Int
+  status        FriendshipStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+
+  @@unique([userId, friendId])
+}
+
+// Ara tablolar
+model SongPlaylist {
+  playlist      Playlist      @relation(fields: [playlistId], references: [id])
+  playlistId    Int
+  song          Song         @relation(fields: [songId], references: [id])
+  songId        Int
+  addedAt       DateTime      @default(now())
+  order         Int
+
+  @@id([playlistId, songId])
+}
+
+model LikedSong {
+  user          User         @relation(fields: [userId], references: [id])
+  userId        Int
+  song          Song         @relation(fields: [songId], references: [id])
+  songId        Int
+  likedAt       DateTime     @default(now())
+
+  @@id([userId, songId])
+}
+
+model ArtistGenre {
+  artist        Artist       @relation(fields: [artistId], references: [id])
+  artistId      Int
+  genre         Genre        @relation(fields: [genreId], references: [id])
+  genreId       Int
+
+  @@id([artistId, genreId])
+}
+
+model AlbumGenre {
+  album         Album        @relation(fields: [albumId], references: [id])
+  albumId       Int
+  genre         Genre        @relation(fields: [genreId], references: [id])
+  genreId       Int
+
+  @@id([albumId, genreId])
+}
+
+// Enum tanımlamaları
+enum AlbumType {
+  ALBUM
+  SINGLE
+  EP
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
