@@ -4,13 +4,13 @@ import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Kullanıcı kaydı
+// User registration
 router.post('/register', register);
 
-// Kullanıcı girişi
+// User login
 router.post('/login', login);
 
-// Kullanıcı profili alma - yetkilendirme gerektirir
+// Get user profile - requires authentication
 router.get('/profile', authenticate, getProfile);
 
 export default router; 
