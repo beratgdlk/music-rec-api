@@ -1,28 +1,40 @@
 import express from 'express';
 import { 
-  getTracks,
+  getAllTracks,
   getTrackById,
   searchTracks,
+  getRelatedTracks,
   likeTrack,
   unlikeTrack,
   getLikedTracks,
-  addTrackReview,
+  addReview,
   getTrackReviews
 } from '../controllers/track.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Herkese açık rotalar
-router.get('/', getTracks);
-router.get('/search', searchTracks);
-router.get('/:id', getTrackById);
-router.get('/:id/reviews', getTrackReviews);
+// Get all tracks - public
+router.get('/', getAllTracks);
 
-// Yetkilendirme gerektiren rotalar - bunları authenticate ile koruyoruz
+// Search tracks - public
+router.get('/search', searchTracks);
+
+// Get user's liked tracks - requires authentication
+router.get('/liked', authenticate, getLikedTracks);
+
+// Get related tracks - public
+router.get('/:id/related', getRelatedTracks);
+
+// Get track by ID - public
+router.get('/:id', getTrackById);
+
+// Like/unlike track - requires authentication
 router.post('/:id/like', authenticate, likeTrack);
 router.delete('/:id/like', authenticate, unlikeTrack);
-router.get('/user/liked', authenticate, getLikedTracks);
-router.post('/:id/reviews', authenticate, addTrackReview);
+
+// Track reviews - requires authentication for adding
+router.get('/:id/reviews', getTrackReviews);
+router.post('/:id/reviews', authenticate, addReview);
 
 export default router; 

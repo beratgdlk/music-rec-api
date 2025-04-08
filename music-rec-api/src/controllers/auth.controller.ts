@@ -3,125 +3,125 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../server';
 
-// Kullanıcı kaydı
+// User registration
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, username, name } = req.body;
 
-    // Alan kontrolü
+    // Field validation
     if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, şifre ve kullanıcı adı zorunludur' });
+      return res.status(400).json({ error: 'Email, password and username are required' });
     }
 
-    // Email formatı kontrolü
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Geçerli bir email adresi giriniz' });
+      return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    // Şifre uzunluğu kontrolü
+    // Password length validation
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // Email kontrolü
+    // Email validation
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Bu email zaten kullanımda' });
+      return res.status(400).json({ error: 'This email is already in use' });
     }
 
-    // Kullanıcı adı kontrolü
+    // Username validation
     const existingUsername = await prisma.user.findUnique({
       where: { username }
     });
 
     if (existingUsername) {
-      return res.status(400).json({ error: 'Bu kullanıcı adı zaten kullanımda' });
+      return res.status(400).json({ error: 'This username is already in use' });
     }
 
-    // Şifre hashleme
+    // Password hashing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Yeni kullanıcı oluşturma
+    // Create new user
     const newUser = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         username,
-        name: name || username // İsim yoksa kullanıcı adını kullan
+        name: name || username // Use username if name is not provided
       }
     });
 
-    // Hassas bilgileri gizle
+    // Hide sensitive information
     const { password: _, ...userWithoutPassword } = newUser;
 
     res.status(201).json({ 
-      message: 'Kullanıcı başarıyla oluşturuldu',
+      message: 'User created successfully',
       user: userWithoutPassword
     });
   } catch (error) {
-    console.error('Kayıt hatası:', error);
-    res.status(500).json({ error: 'Sunucu hatası' });
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-// Kullanıcı girişi
+// User login
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Alan kontrolü
+    // Field validation
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email ve şifre zorunludur' });
+      return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Kullanıcıyı bul
+    // Find user
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
     if (!user) {
-      return res.status(400).json({ error: 'Geçersiz kimlik bilgileri' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Şifre kontrolü
+    // Password validation
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Geçersiz kimlik bilgileri' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // JWT token oluştur
+    // Create JWT token
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET || 'gizli-anahtar',
+      process.env.JWT_SECRET || 'secret-key',
       { expiresIn: '24h' }
     );
 
-    // Hassas bilgileri gizle
+    // Hide sensitive information
     const { password: _, ...userWithoutPassword } = user;
 
     res.json({
-      message: 'Giriş başarılı',
+      message: 'Login successful',
       token,
       user: userWithoutPassword
     });
   } catch (error) {
-    console.error('Giriş hatası:', error);
-    res.status(500).json({ error: 'Sunucu hatası' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
-// Kullanıcı profili alma
+// Get user profile
 export const getProfile = async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Yetkilendirme hatası' });
+      return res.status(401).json({ error: 'Authentication error' });
     }
 
     const user = await prisma.user.findUnique({
@@ -137,15 +137,15 @@ export const getProfile = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    // Hassas bilgileri gizle
+    // Hide sensitive information
     const { password, ...userWithoutPassword } = user;
 
     res.json(userWithoutPassword);
   } catch (error) {
-    console.error('Profil alma hatası:', error);
-    res.status(500).json({ error: 'Sunucu hatası' });
+    console.error('Error getting profile:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 }; 

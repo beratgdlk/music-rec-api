@@ -1,5 +1,5 @@
 {
-  "name": "spotify-backend",
+  "name": "music-api-backend",
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {

@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Kullanıcı modeli
+// User model
 model User {
   id            Int           @id @default(autoincrement())
   email         String        @unique
@@ -22,7 +22,7 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // İlişkiler
+  // Relationships
   playlists     Playlist[]
   likedSongs    LikedSong[]
   reviews       Review[]
@@ -32,7 +32,7 @@ model User {
   wishlist      Wishlist[]
 }
 
-// Sanatçı modeli
+// Artist model
 model Artist {
   id            Int           @id @default(autoincrement())
   name          String
@@ -42,13 +42,13 @@ model Artist {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // İlişkiler
+  // Relationships
   albums        Album[]
   songs         Song[]
   genres        ArtistGenre[]
 }
 
-// Albüm modeli
+// Album model
 model Album {
   id            Int           @id @default(autoincrement())
   title         String
@@ -59,7 +59,7 @@ model Album {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // İlişkiler
+  // Relationships
   artist        Artist        @relation(fields: [artistId], references: [id])
   artistId      Int
   songs         Song[]
@@ -68,18 +68,18 @@ model Album {
   ratings       Rating[]
 }
 
-// Şarkı modeli
+// Song model
 model Song {
   id            Int           @id @default(autoincrement())
   title         String
-  duration      Int          // Saniye cinsinden süre
+  duration      Int          // Duration in seconds
   trackNumber   Int
   audioUrl      String
   rating        Float         @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // İlişkiler
+  // Relationships
   album         Album         @relation(fields: [albumId], references: [id])
   albumId       Int
   artist        Artist        @relation(fields: [artistId], references: [id])
@@ -91,7 +91,7 @@ model Song {
   wishlist      Wishlist[]
 }
 
-// Çalma Listesi modeli
+// Playlist model
 model Playlist {
   id            Int           @id @default(autoincrement())
   name          String
@@ -101,13 +101,13 @@ model Playlist {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  // İlişkiler
+  // Relationships
   owner         User          @relation(fields: [ownerId], references: [id])
   ownerId       Int
   songs         SongPlaylist[]
 }
 
-// Tür modeli
+// Genre model
 model Genre {
   id            Int           @id @default(autoincrement())
   name          String        @unique
@@ -115,14 +115,14 @@ model Genre {
   albums        AlbumGenre[]
 }
 
-// Değerlendirme modeli
+// Review model
 model Review {
   id            Int           @id @default(autoincrement())
   content       String        @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   
-  // İlişkiler
+  // Relationships
   user          User          @relation(fields: [userId], references: [id])
   userId        Int
   song          Song?         @relation(fields: [songId], references: [id])
@@ -134,13 +134,13 @@ model Review {
   @@unique([userId, albumId])
 }
 
-// Puanlama modeli
+// Rating model
 model Rating {
   id            Int           @id @default(autoincrement())
-  score         Int          // 1-5 arası puan
+  score         Int          // Score from 1-5
   createdAt     DateTime      @default(now())
   
-  // İlişkiler
+  // Relationships
   user          User          @relation(fields: [userId], references: [id])
   userId        Int
   song          Song?         @relation(fields: [songId], references: [id])
@@ -152,7 +152,7 @@ model Rating {
   @@unique([userId, albumId])
 }
 
-// İstek listesi modeli
+// Wishlist model
 model Wishlist {
   id            Int           @id @default(autoincrement())
   user          User          @relation(fields: [userId], references: [id])
@@ -164,7 +164,7 @@ model Wishlist {
   @@unique([userId, songId])
 }
 
-// Arkadaşlık modeli
+// Friendship model
 model Friendship {
   id            Int           @id @default(autoincrement())
   user          User          @relation("userFriends", fields: [userId], references: [id])
@@ -177,7 +177,7 @@ model Friendship {
   @@unique([userId, friendId])
 }
 
-// Ara tablolar
+// Junction tables
 model SongPlaylist {
   playlist      Playlist      @relation(fields: [playlistId], references: [id])
   playlistId    Int
@@ -217,7 +217,7 @@ model AlbumGenre {
   @@id([albumId, genreId])
 }
 
-// Enum tanımlamaları
+// Enum definitions
 enum AlbumType {
   ALBUM
   SINGLE

@@ -1,27 +1,29 @@
 import express from 'express';
 import { 
-  getUsers, 
+  getAllUsers, 
   getUserById, 
   updateUser, 
-  deleteUser 
+  deleteUser,
+  getUserFriends,
+  addFriend,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  removeFriend
 } from '../controllers/user.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { authenticate, authorizeAdmin, authorizeUser } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
-// Tüm rotalar yetkilendirme gerektirir
-router.use(authenticate);
+// Get all users - admin only
+router.get('/', authenticate, authorizeAdmin, getAllUsers);
 
-// Tüm kullanıcıları listele
-router.get('/', getUsers);
+// Get user by ID - authenticated
+router.get('/:id', authenticate, getUserById);
 
-// Belirli bir kullanıcıyı getir
-router.get('/:id', getUserById);
+// Update user - own profile or admin
+router.put('/:id', authenticate, authorizeUser, updateUser);
 
-// Kullanıcı güncelle (sadece kendi profilini)
-router.put('/:id', updateUser);
-
-// Kullanıcıyı sil (sadece kendi hesabını)
-router.delete('/:id', deleteUser);
+// Delete user - own profile or admin
+router.delete('/:id', authenticate, authorizeUser, deleteUser);
 
 export default router; 
