@@ -1,21 +1,16 @@
 import express from 'express';
 import { 
-  getAllUsers, 
+  getUsers, 
   getUserById, 
   updateUser, 
-  deleteUser,
-  getUserFriends,
-  addFriend,
-  acceptFriendRequest,
-  rejectFriendRequest,
-  removeFriend
+  deleteUser
 } from '../controllers/user.controller';
 import { authenticate, authorizeAdmin, authorizeUser } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
 // Get all users - admin only
-router.get('/', authenticate, authorizeAdmin, getAllUsers);
+router.get('/', authenticate, authorizeAdmin, getUsers);
 
 // Get user by ID - authenticated
 router.get('/:id', authenticate, getUserById);

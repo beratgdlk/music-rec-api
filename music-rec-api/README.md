@@ -20,27 +20,73 @@ This project provides a backend API for a Spotify-like application that recommen
 - Authentication with JSON Web Token (JWT)
 - Password hashing with BCrypt
 
-## Installation
+## Installation Steps
 
-1. Clone the repository
-2. Install dependencies:
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd music-rec-api
+```
 
+2. Install PostgreSQL if not installed:
+   - Download from [PostgreSQL Official Website](https://www.postgresql.org/download/)
+   - During installation, set the password for 'postgres' user
+   - Default port should be 5432
+
+3. Create a PostgreSQL database:
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# In PostgreSQL shell
+CREATE DATABASE music_api;
+\q
+```
+
+4. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Edit the `.env` file and enter your database connection information
-4. Create the database and synchronize the Prisma schema:
+5. Create `.env` file in the root directory with the following content:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/music_api?schema=public"
+JWT_SECRET="your-super-secret-key-here"
+PORT=3001
+```
+Note: Replace 'postgres' in the DATABASE_URL with your actual PostgreSQL password if different.
 
+6. Push the database schema:
 ```bash
 npx prisma db push
 ```
 
-5. Start the development server:
+7. Seed the database with sample data:
+```bash
+npm run seed
+```
 
+8. Start the development server:
 ```bash
 npm run dev
 ```
+
+The API will be available at `http://localhost:3001`
+
+## Common Issues
+
+1. Port already in use:
+   - Change the PORT in `.env` file
+   - Or stop the process using port 3001
+
+2. Database connection issues:
+   - Make sure PostgreSQL is running
+   - Check if database credentials are correct in `.env`
+   - Verify that the database exists
+
+3. Prisma issues:
+   - Try regenerating Prisma client: `npx prisma generate`
+   - Reset database if needed: `npx prisma db push --force-reset`
 
 ## API Routes
 
@@ -88,6 +134,74 @@ This project is licensed under the MIT license.
 
 Bu proje, müzik ve müzik listeleri öneren bir Spotify benzeri uygulama için backend API'sini sağlar.
 
+## Kurulum Adımları
+
+1. Repository'yi klonlayın:
+```bash
+git clone <repository-url>
+cd music-rec-api
+```
+
+2. PostgreSQL kurulu değilse kurun:
+   - [PostgreSQL Resmi Websitesi](https://www.postgresql.org/download/)'nden indirin
+   - Kurulum sırasında 'postgres' kullanıcısı için şifre belirleyin
+   - Varsayılan port 5432 olmalıdır
+
+3. PostgreSQL veritabanı oluşturun:
+```bash
+# PostgreSQL'e bağlanın
+psql -U postgres
+
+# PostgreSQL kabuğunda
+CREATE DATABASE music_api;
+\q
+```
+
+4. Bağımlılıkları yükleyin:
+```bash
+npm install
+```
+
+5. Kök dizinde `.env` dosyası oluşturun ve içeriğini şu şekilde düzenleyin:
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/music_api?schema=public"
+JWT_SECRET="your-super-secret-key-here"
+PORT=3001
+```
+Not: DATABASE_URL'deki 'postgres' şifresini, farklıysa kendi PostgreSQL şifrenizle değiştirin.
+
+6. Veritabanı şemasını yükleyin:
+```bash
+npx prisma db push
+```
+
+7. Örnek verileri yükleyin:
+```bash
+npm run seed
+```
+
+8. Geliştirme sunucusunu başlatın:
+```bash
+npm run dev
+```
+
+API `http://localhost:3001` adresinde çalışmaya başlayacaktır.
+
+## Sık Karşılaşılan Sorunlar
+
+1. Port kullanımda hatası:
+   - `.env` dosyasında PORT değerini değiştirin
+   - Ya da 3001 portunu kullanan işlemi durdurun
+
+2. Veritabanı bağlantı sorunları:
+   - PostgreSQL'in çalıştığından emin olun
+   - `.env` dosyasındaki veritabanı bilgilerinin doğru olduğunu kontrol edin
+   - Veritabanının oluşturulduğunu doğrulayın
+
+3. Prisma sorunları:
+   - Prisma istemcisini yeniden oluşturun: `npx prisma generate`
+   - Gerekirse veritabanını sıfırlayın: `npx prisma db push --force-reset`
+
 ## Özellikler
 
 - Kullanıcı yönetimi (kayıt, giriş, profil yönetimi)
@@ -106,64 +220,8 @@ Bu proje, müzik ve müzik listeleri öneren bir Spotify benzeri uygulama için 
 - JSON Web Token (JWT) ile kimlik doğrulama
 - BCrypt ile şifre hashleme
 
-## Kurulum
-
-1. Repository'yi klonlayın
-2. Bağımlılıkları yükleyin:
-
-```bash
-npm install
-```
-
-3. `.env` dosyasını düzenleyin ve veritabanı bağlantı bilgilerinizi girin
-4. Veritabanını oluşturun ve Prisma şemasını senkronize edin:
-
-```bash
-npx prisma db push
-```
-
-5. Geliştirme sunucusunu başlatın:
-
-```bash
-npm run dev
-```
-
 ## API Rotaları
 
 ### Kimlik Doğrulama
 
-- `POST /api/auth/register` - Yeni kullanıcı kaydı
-- `POST /api/auth/login` - Kullanıcı girişi
-- `GET /api/auth/profile` - Kullanıcı profili alma
-
-### Kullanıcılar
-
-- `GET /api/users` - Tüm kullanıcıları listele
-- `GET /api/users/:id` - Belirli bir kullanıcıyı getir
-- `PUT /api/users/:id` - Kullanıcı bilgilerini güncelle
-- `DELETE /api/users/:id` - Kullanıcıyı sil
-
-### Çalma Listeleri
-
-- `POST /api/playlists` - Yeni çalma listesi oluştur
-- `GET /api/playlists` - Tüm çalma listelerini getir
-- `GET /api/playlists/:id` - Belirli bir çalma listesini getir
-- `PUT /api/playlists/:id` - Çalma listesini güncelle
-- `DELETE /api/playlists/:id` - Çalma listesini sil
-- `POST /api/playlists/:id/songs` - Çalma listesine şarkı ekle
-- `DELETE /api/playlists/:id/songs/:songId` - Çalma listesinden şarkı çıkar
-
-### Şarkılar
-
-- `GET /api/tracks` - Tüm şarkıları getir
-- `GET /api/tracks/search` - Şarkı ara
-- `GET /api/tracks/:id` - Belirli bir şarkıyı getir
-- `POST /api/tracks/:id/like` - Şarkıyı beğen
-- `DELETE /api/tracks/:id/like` - Şarkı beğenisini kaldır
-- `GET /api/tracks/user/liked` - Beğenilen şarkıları getir
-- `POST /api/tracks/:id/reviews` - Şarkıya yorum ekle
-- `GET /api/tracks/:id/reviews` - Şarkı yorumlarını getir
-
-## Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır. 
+- `POST /api/auth/register`
