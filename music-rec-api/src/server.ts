@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
@@ -9,18 +8,28 @@ import userRoutes from './routes/user.routes';
 import playlistRoutes from './routes/playlist.routes';
 import trackRoutes from './routes/track.routes';
 
+// Middlewares
+import { corsMiddleware } from './middlewares/cors.middleware';
+import { apiLimiter, authLimiter, adminLimiter } from './middlewares/rateLimit.middleware';
+
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares
-app.use(cors());
+// Global Middlewares
+app.use(corsMiddleware);
 app.use(express.json());
+app.use(apiLimiter);
 
-// Routes
-app.use('/api/auth', authRoutes);
+// Auth routes with stricter rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
+
+// Admin routes with admin rate limiting
+app.use('/api/admin', adminLimiter, userRoutes);
+
+// Other routes
 app.use('/api/users', userRoutes);
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/tracks', trackRoutes);
