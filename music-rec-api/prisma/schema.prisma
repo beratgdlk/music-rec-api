@@ -30,6 +30,7 @@ model User {
   friends       Friendship[]  @relation("userFriends")
   friendsOf     Friendship[]  @relation("friendsOfUser")
   wishlist      Wishlist[]
+  refreshTokens RefreshToken[]
 }
 
 // Artist model
@@ -228,4 +229,16 @@ enum FriendshipStatus {
   PENDING
   ACCEPTED
   BLOCKED
+}
+
+// RefreshToken model
+model RefreshToken {
+  id            Int           @id @default(autoincrement())
+  token         String        @unique
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  revoked       Boolean       @default(false)
 }

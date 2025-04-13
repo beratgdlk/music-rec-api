@@ -1,14 +1,32 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
+import crypto from 'crypto';
 
 /**
- * Generate JWT token
+ * Generate JWT token (access token)
  */
 export const generateToken = (userId: number): string => {
   return jwt.sign({ id: userId }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
+};
+
+/**
+ * Generate refresh token
+ */
+export const generateRefreshToken = (): string => {
+  return crypto.randomBytes(40).toString('hex');
+};
+
+/**
+ * Calculate refresh token expiry (30 days from now)
+ */
+export const getRefreshTokenExpiry = (): Date => {
+  const expiryDays = 30;
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + expiryDays);
+  return expiryDate;
 };
 
 /**
@@ -27,4 +45,4 @@ export const comparePassword = async (
   hashedPassword: string
 ): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
-}; 
+};

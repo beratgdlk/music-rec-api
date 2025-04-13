@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express-serve-static-core';
 import { ApiError } from '../utils/error.utils';
 import { NODE_ENV } from '../config/env';
+import logger from '../utils/logger.utils';
 
 /**
  * Global error handling middleware
@@ -11,7 +12,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error(err);
+  // Hatayı logla
+  logger.error(`${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
+  
+  if (err.stack) {
+    logger.debug(err.stack);
+  }
 
   // Default error
   let statusCode = 500;
@@ -39,6 +45,7 @@ export const errorHandler = (
  * 404 Not Found handler for undefined routes
  */
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
+  logger.warn(`404 - ${req.originalUrl} - ${req.method} - ${req.ip}`);
   const error = new ApiError(`Bulunamadı - ${req.originalUrl}`, 404);
   next(error);
 }; 

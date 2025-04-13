@@ -1,7 +1,14 @@
-import { User as PrismaUser, Friendship } from '@prisma/client';
-
-// User type without sensitive fields
-export type UserData = Omit<PrismaUser, 'password'>;
+// Define UserData type based on what we need rather than importing from Prisma
+export interface UserData {
+  id: number;
+  email: string;
+  username: string;
+  name?: string | null;
+  profileImage?: string | null;
+  isAdmin: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // User input for registration
 export interface UserRegisterInput {
@@ -26,8 +33,20 @@ export interface UserUpdateInput {
   password?: string;
 }
 
-// Auth response with token
+// Auth response with tokens
 export interface AuthResponse {
   user: UserData;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+// Refresh token request
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+// Token response
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
 } 

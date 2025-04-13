@@ -227,14 +227,17 @@ export const PlaylistService = {
       throw new ForbiddenError('Bu çalma listesini silme yetkiniz yok');
     }
 
-    // Önce ilişkili şarkıları sil (cascade delete yerine)
-    await prisma.songPlaylist.deleteMany({
-      where: { playlistId }
-    });
+    // Transaction kullanarak hem şarkıları hem de çalma listesini sil
+    await prisma.$transaction(async (tx) => {
+      // Önce ilişkili şarkıları sil
+      await tx.songPlaylist.deleteMany({
+        where: { playlistId }
+      });
 
-    // Çalma listesini sil
-    await prisma.playlist.delete({
-      where: { id: playlistId }
+      // Sonra çalma listesini sil
+      await tx.playlist.delete({
+        where: { id: playlistId }
+      });
     });
   },
 
@@ -267,52 +270,54 @@ export const PlaylistService = {
       throw new NotFoundError('Şarkı bulunamadı');
     }
 
-    // Şarkı zaten eklenmişse güncelle
-    const existingEntry = await prisma.songPlaylist.findUnique({
-      where: {
-        playlistId_songId: {
-          playlistId,
-          songId: trackId,
+    await prisma.$transaction(async (tx) => {
+      // Şarkı zaten eklenmişse güncelle
+      const existingEntry = await tx.songPlaylist.findUnique({
+        where: {
+          playlistId_songId: {
+            playlistId,
+            songId: trackId,
+          }
         }
-      }
-    });
-
-    if (existingEntry) {
-      if (order) {
-        // Sırayı güncelle
-        await prisma.songPlaylist.update({
-          where: {
-            playlistId_songId: {
-              playlistId,
-              songId: trackId,
-            }
-          },
-          data: { order }
-        });
-      }
-      return;
-    }
-
-    // Mevcut son sırayı bul
-    let nextOrder = 1;
-    if (!order) {
-      const lastEntry = await prisma.songPlaylist.findFirst({
-        where: { playlistId },
-        orderBy: { order: 'desc' },
       });
 
-      if (lastEntry) {
-        nextOrder = lastEntry.order + 1;
+      if (existingEntry) {
+        if (order) {
+          // Sırayı güncelle
+          await tx.songPlaylist.update({
+            where: {
+              playlistId_songId: {
+                playlistId,
+                songId: trackId,
+              }
+            },
+            data: { order }
+          });
+        }
+        return;
       }
-    }
 
-    // Şarkıyı ekle
-    await prisma.songPlaylist.create({
-      data: {
-        playlistId,
-        songId: trackId,
-        order: order || nextOrder,
+      // Mevcut son sırayı bul
+      let nextOrder = 1;
+      if (!order) {
+        const lastEntry = await tx.songPlaylist.findFirst({
+          where: { playlistId },
+          orderBy: { order: 'desc' },
+        });
+
+        if (lastEntry) {
+          nextOrder = lastEntry.order + 1;
+        }
       }
+
+      // Şarkıyı ekle
+      await tx.songPlaylist.create({
+        data: {
+          playlistId,
+          songId: trackId,
+          order: order || nextOrder,
+        }
+      });
     });
   },
 
@@ -334,15 +339,17 @@ export const PlaylistService = {
       throw new ForbiddenError('Bu çalma listesinden şarkı kaldırma yetkiniz yok');
     }
 
-    // Şarkıyı kaldır
+    // Transaction kullanarak şarkıyı kaldır
     try {
-      await prisma.songPlaylist.delete({
-        where: {
-          playlistId_songId: {
-            playlistId,
-            songId: trackId,
+      await prisma.$transaction(async (tx) => {
+        await tx.songPlaylist.delete({
+          where: {
+            playlistId_songId: {
+              playlistId,
+              songId: trackId,
+            }
           }
-        }
+        });
       });
     } catch (error) {
       // Şarkı zaten listede yoksa sessizce devam et

@@ -1,9 +1,11 @@
 import express from 'express';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 // Configs
 import { PORT } from './config/env';
 import './config/database';
+import logger from './utils/logger.utils';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -15,6 +17,7 @@ import playlistRoutes from './routes/playlist.routes';
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { apiLimiter, authLimiter } from './middlewares/rateLimit.middleware';
 import { errorHandler, notFound } from './middlewares/error.middleware';
+import { requestLogger } from './middlewares/logger.middleware';
 
 const app = express();
 
@@ -24,6 +27,8 @@ app.use(helmet());
 // Global Middlewares
 app.use(corsMiddleware);
 app.use(express.json());
+app.use(cookieParser());
+app.use(requestLogger);
 app.use(apiLimiter);
 
 // Auth routes with stricter rate limiting
@@ -48,5 +53,5 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  logger.info(`Server running at http://localhost:${PORT}`);
 }); 

@@ -1,10 +1,11 @@
-import { Express } from 'express';
+import { Express } from 'express-serve-static-core';
 
-// Express Request tipini genişlet
 declare global {
   namespace Express {
     interface Request {
       userId?: number;
     }
   }
-} 
+}
+
+export {}; 

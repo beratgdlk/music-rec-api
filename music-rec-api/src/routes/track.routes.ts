@@ -11,14 +11,15 @@ import {
   getTrackReviews
 } from '../controllers/track.controller';
 import { authenticate } from '../middlewares/auth.middleware';
+import { searchLimiter } from '../middlewares/rateLimit.middleware';
 
 const router = express.Router();
 
 // Get all tracks - public
 router.get('/', getAllTracks);
 
-// Search tracks - public
-router.get('/search', searchTracks);
+// Search tracks - public with rate limiting
+router.get('/search', searchLimiter, searchTracks);
 
 // Get user's liked tracks - requires authentication
 router.get('/liked', authenticate, getLikedTracks);

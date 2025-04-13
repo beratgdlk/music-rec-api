@@ -1,70 +1,39 @@
-import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { prisma } from '../server';
+import { Request, Response } from 'express-serve-static-core';
+import { AuthService } from '../services/auth.service';
+import { UserService } from '../services/user.service';
+import logger from '../utils/logger.utils';
 
 // User registration
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, username, name } = req.body;
-
-    // Field validation
-    if (!email || !password || !username) {
-      return res.status(400).json({ error: 'Email, password and username are required' });
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Please enter a valid email address' });
-    }
-
-    // Password length validation
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
-    // Email validation
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    const { email, password, username, name, profileImage } = req.body;
+    
+    const authResult = await AuthService.register({
+      email,
+      password,
+      username,
+      name,
+      profileImage
     });
 
-    if (existingUser) {
-      return res.status(400).json({ error: 'This email is already in use' });
-    }
-
-    // Username validation
-    const existingUsername = await prisma.user.findUnique({
-      where: { username }
+    // Set HTTP-only cookie for refresh token
+    res.cookie('refreshToken', authResult.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/api/auth/refresh-token'
     });
-
-    if (existingUsername) {
-      return res.status(400).json({ error: 'This username is already in use' });
-    }
-
-    // Password hashing
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        username,
-        name: name || username // Use username if name is not provided
-      }
-    });
-
-    // Hide sensitive information
-    const { password: _, ...userWithoutPassword } = newUser;
 
     res.status(201).json({ 
-      message: 'User created successfully',
-      user: userWithoutPassword
+      message: 'Kullanıcı başarıyla oluşturuldu',
+      user: authResult.user,
+      accessToken: authResult.accessToken
     });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    logger.error(`Registration error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ 
+      error: error.message || 'Sunucu hatası'
+    });
   }
 };
 
@@ -72,46 +41,85 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-
-    // Field validation
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
+    
+    const authResult = await AuthService.login({
+      email,
+      password
     });
 
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Password validation
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET || 'secret-key',
-      { expiresIn: '24h' }
-    );
-
-    // Hide sensitive information
-    const { password: _, ...userWithoutPassword } = user;
+    // Set HTTP-only cookie for refresh token
+    res.cookie('refreshToken', authResult.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/api/auth/refresh-token'
+    });
 
     res.json({
-      message: 'Login successful',
-      token,
-      user: userWithoutPassword
+      message: 'Giriş başarılı',
+      user: authResult.user,
+      accessToken: authResult.accessToken
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: any) {
+    logger.error(`Login error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ 
+      error: error.message || 'Sunucu hatası'
+    });
+  }
+};
+
+// Refresh access token
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    // Refresh token'ı cookie'den veya body'den al
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ error: 'Refresh token gerekiyor' });
+    }
+    
+    const tokens = await AuthService.refreshToken({ refreshToken });
+
+    // Set HTTP-only cookie for new refresh token
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/api/auth/refresh-token'
+    });
+
+    res.json({
+      accessToken: tokens.accessToken
+    });
+  } catch (error: any) {
+    logger.error(`Refresh token error: ${error.message}`);
+    res.status(error.statusCode || 401).json({ 
+      error: error.message || 'Geçersiz token'
+    });
+  }
+};
+
+// User logout
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // Refresh token'ı cookie'den veya body'den al
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+    
+    if (refreshToken) {
+      await AuthService.logout(refreshToken);
+    }
+    
+    // Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/api/auth/refresh-token'
+    });
+
+    res.json({ message: 'Çıkış başarılı' });
+  } catch (error: any) {
+    logger.error(`Logout error: ${error.message}`);
+    res.status(500).json({ error: 'Çıkış yapılırken bir hata oluştu' });
   }
 };
 
@@ -121,31 +129,17 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication error' });
+      return res.status(401).json({ error: 'Kimlik doğrulama hatası' });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        _count: {
-          select: {
-            playlists: true,
-            likedSongs: true
-          }
-        }
-      }
+    // Use the user service instead of directly using prisma
+    const user = await UserService.getUserById(userId);
+
+    res.json(user);
+  } catch (error: any) {
+    logger.error(`Profile error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ 
+      error: error.message || 'Sunucu hatası'
     });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Hide sensitive information
-    const { password, ...userWithoutPassword } = user;
-
-    res.json(userWithoutPassword);
-  } catch (error) {
-    console.error('Error getting profile:', error);
-    res.status(500).json({ error: 'Server error' });
   }
 }; 
