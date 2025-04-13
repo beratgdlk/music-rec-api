@@ -1,5 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
+
+import type { Request, Response, NextFunction } from 'express-serve-static-core';
+import { validationResult } from 'express-validator';
+import type { ValidationChain } from 'express-validator';
 import { BadRequestError } from '../utils/error.utils';
 
 /**
