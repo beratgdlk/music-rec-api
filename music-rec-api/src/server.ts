@@ -1,20 +1,25 @@
 import express from 'express';
-import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import helmet from 'helmet';
+
+// Configs
+import { PORT } from './config/env';
+import './config/database';
 
 // Routes
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import trackRoutes from './routes/track.routes';
+import playlistRoutes from './routes/playlist.routes';
 
 // Middlewares
 import { corsMiddleware } from './middlewares/cors.middleware';
 import { apiLimiter, authLimiter } from './middlewares/rateLimit.middleware';
-
-dotenv.config();
+import { errorHandler, notFound } from './middlewares/error.middleware';
 
 const app = express();
-export const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
+
+// Security middleware
+app.use(helmet());
 
 // Global Middlewares
 app.use(corsMiddleware);
@@ -27,16 +32,20 @@ app.use('/api/auth', authLimiter, authRoutes);
 // User routes
 app.use('/api/users', userRoutes);
 
+// Track routes
+app.use('/api/tracks', trackRoutes);
+
+// Playlist routes 
+app.use('/api/playlists', playlistRoutes);
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'Music API is running!' });
 });
 
-// Error handler
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Server error!' });
-});
+// Error handling
+app.use(notFound);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
