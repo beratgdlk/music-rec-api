@@ -9,6 +9,7 @@ interface Song {
   artist: string;
   album?: string;
   imageUrl?: string;
+  duration: number;
 }
 
 interface SongCardProps {

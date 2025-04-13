@@ -4,15 +4,20 @@ import { useUserStore } from './stores/userStore'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-// import RegisterPage from './pages/RegisterPage'
+import RegisterPage from './pages/RegisterPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import FavoritesPage from './pages/FavoritesPage'
 import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
+import SearchPage from './pages/SearchPage'
+import MusicPlayer from './components/MusicPlayer'
 
-// RegisterPage modülünü dinamik olarak import ediyoruz
-const RegisterPage = () => {
-  return <div className="flex justify-center items-center h-screen">Kayıt Sayfası Yükleniyor...</div>;
+// Örnek aktif şarkı
+const currentPlayingSong = {
+  id: '1',
+  title: 'Şu An Çalan Şarkı',
+  artist: 'Sanatçı Adı',
+  duration: 180
 };
 
 // Korumalı rota bileşeni
@@ -21,9 +26,9 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-gray-900 to-black">
-        <div className="bg-white/5 backdrop-blur-lg p-8 rounded-2xl flex flex-col items-center">
-          <div className="w-12 h-12 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin mb-4"></div>
+      <div className="flex justify-center items-center h-screen bg-[#121212]">
+        <div className="p-8 rounded-xl flex flex-col items-center">
+          <div className="w-12 h-12 border-t-2 border-b-2 border-[#1db954] rounded-full animate-spin mb-4"></div>
           <p className="text-white">Yükleniyor...</p>
         </div>
       </div>
@@ -53,16 +58,16 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-gray-900 to-black">
-        <div className="bg-white/5 backdrop-blur-lg p-8 rounded-2xl flex flex-col items-center">
+      <div className="flex justify-center items-center h-screen bg-[#121212]">
+        <div className="p-8 rounded-xl flex flex-col items-center">
           <div className="w-16 h-16 relative">
-            <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-4 border-[#535353] border-t-[#1db954] rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full"></div>
+              <div className="w-8 h-8 bg-[#1db954] rounded-full"></div>
             </div>
           </div>
-          <h1 className="text-2xl font-bold mt-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            Musify
+          <h1 className="text-2xl font-bold mt-4 text-white">
+            MüzikApp
           </h1>
           <p className="text-gray-400 mt-2">Müzik deneyiminiz yükleniyor...</p>
         </div>
@@ -72,14 +77,15 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-black">
+      <div className="min-h-screen flex flex-col bg-[#121212] text-white">
         <Navbar />
-        <main className="flex-1 pl-64">
-          <div className="max-w-7xl mx-auto px-6 py-8">
+        <main className="flex-1 pl-64 pb-20">
+          <div className="px-6 py-4">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/search" element={<SearchPage />} />
               <Route 
                 path="/recommendations" 
                 element={
@@ -108,18 +114,7 @@ function App() {
             </Routes>
           </div>
         </main>
-        <footer className="bg-gray-900/50 backdrop-blur-lg border-t border-gray-800/40 text-white py-6 pl-64">
-          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-            <div>
-              <p className="text-gray-400">&copy; {new Date().getFullYear()} Müzik Öneri Uygulaması</p>
-            </div>
-            <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Hakkımızda</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Gizlilik</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Şartlar</a>
-            </div>
-          </div>
-        </footer>
+        <MusicPlayer currentSong={currentPlayingSong} />
       </div>
     </Router>
   )
