@@ -1,19 +1,19 @@
-import prisma from '../config/database';
-import { UserService } from './user.service';
-import { 
-  comparePassword, 
-  generateToken, 
+import prisma from "@db";
+import {
+  AuthResponse,
+  RefreshTokenRequest,
+  TokenResponse,
+  UserLoginInput,
+  UserRegisterInput
+} from '../models/user.model';
+import {
+  comparePassword,
   generateRefreshToken,
+  generateToken,
   getRefreshTokenExpiry
 } from '../utils/auth.utils';
-import { 
-  UserRegisterInput, 
-  UserLoginInput, 
-  AuthResponse,
-  TokenResponse,
-  RefreshTokenRequest
-} from '../models/user.model';
-import { UnauthorizedError, BadRequestError } from '../utils/error.utils';
+import { UnauthorizedError } from '../utils/error.utils';
+import { UserService } from "./user.service";
 
 /**
  * Kimlik doğrulama servisi

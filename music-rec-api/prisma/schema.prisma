@@ -10,6 +10,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator prismabox {
+  provider = "prismabox"
+  // you can optionally specify the output location. Defaults to ./prismabox
+  output = "./prismabox"
+  // if you want, you can customize the imported variable name that is used for the schemes. Defaults to "Type" which is what the standard typebox package offers
+  typeboxImportVariableName = "Type"
+  // you also can specify the dependency from which the above import should happen. This is useful if a package re-exports the typebox package and you would like to use that
+  typeboxImportDependencyName = "@sinclair/typebox"
+  // by default the generated schemes do not allow additional properties. You can allow them by setting this to true
+  additionalProperties = true
+  // optionally enable the data model generation. See the data model section below for more info
+  inputModel = true
+}
+
+
 // User model
 model User {
   id            Int           @id @default(autoincrement())
@@ -180,42 +195,46 @@ model Friendship {
 
 // Junction tables
 model SongPlaylist {
-  playlist      Playlist      @relation(fields: [playlistId], references: [id])
+  id            Int           @id @default(autoincrement())
+  playlist      Playlist      @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   playlistId    Int
-  song          Song         @relation(fields: [songId], references: [id])
+  song          Song         @relation(fields: [songId], references: [id], onDelete: Cascade)
   songId        Int
   addedAt       DateTime      @default(now())
   order         Int
 
-  @@id([playlistId, songId])
+  @@unique([playlistId, songId])
 }
 
 model LikedSong {
-  user          User         @relation(fields: [userId], references: [id])
+  id            Int           @id @default(autoincrement())
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        Int
-  song          Song         @relation(fields: [songId], references: [id])
+  song          Song          @relation(fields: [songId], references: [id], onDelete: Cascade)
   songId        Int
-  likedAt       DateTime     @default(now())
+  likedAt       DateTime      @default(now())
 
-  @@id([userId, songId])
+  @@unique([userId, songId])
 }
 
 model ArtistGenre {
-  artist        Artist       @relation(fields: [artistId], references: [id])
+  id            Int           @id @default(autoincrement())
+  artist        Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
   artistId      Int
-  genre         Genre        @relation(fields: [genreId], references: [id])
+  genre         Genre        @relation(fields: [genreId], references: [id], onDelete: Cascade)
   genreId       Int
 
-  @@id([artistId, genreId])
+  @@unique([artistId, genreId])
 }
 
 model AlbumGenre {
-  album         Album        @relation(fields: [albumId], references: [id])
+  id            Int           @id @default(autoincrement())
+  album         Album        @relation(fields: [albumId], references: [id], onDelete: Cascade)
   albumId       Int
-  genre         Genre        @relation(fields: [genreId], references: [id])
+  genre         Genre        @relation(fields: [genreId], references: [id], onDelete: Cascade)
   genreId       Int
 
-  @@id([albumId, genreId])
+  @@unique([albumId, genreId])
 }
 
 // Enum definitions

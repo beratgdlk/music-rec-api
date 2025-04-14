@@ -1,14 +1,14 @@
 import express from 'express';
-import { 
-  getAllTracks,
-  getTrackById,
-  searchTracks,
-  getRelatedTracks,
-  likeTrack,
-  unlikeTrack,
+import {
+  /* addReview,
+  getAllTracks, */
   getLikedTracks,
-  addReview,
-  getTrackReviews
+  /* getRelatedTracks, */
+  getTrackById,
+  getTrackReviews,
+  likeTrack,
+  searchTracks,
+  unlikeTrack
 } from '../controllers/track.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 import { searchLimiter } from '../middlewares/rateLimit.middleware';
@@ -16,7 +16,7 @@ import { searchLimiter } from '../middlewares/rateLimit.middleware';
 const router = express.Router();
 
 // Get all tracks - public
-router.get('/', getAllTracks);
+/* router.get('/', getAllTracks); */
 
 // Search tracks - public with rate limiting
 router.get('/search', searchLimiter, searchTracks);
@@ -25,7 +25,7 @@ router.get('/search', searchLimiter, searchTracks);
 router.get('/liked', authenticate, getLikedTracks);
 
 // Get related tracks - public
-router.get('/:id/related', getRelatedTracks);
+/* router.get('/:id/related', getRelatedTracks); */
 
 // Get track by ID - public
 router.get('/:id', getTrackById);
@@ -36,6 +36,6 @@ router.delete('/:id/like', authenticate, unlikeTrack);
 
 // Track reviews - requires authentication for adding
 router.get('/:id/reviews', getTrackReviews);
-router.post('/:id/reviews', authenticate, addReview);
+/* router.post('/:id/reviews', authenticate, addReview); */
 
 export default router; 

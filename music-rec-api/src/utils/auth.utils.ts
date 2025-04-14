@@ -1,12 +1,13 @@
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/env';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
+import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env';
 
 /**
  * Generate JWT token (access token)
  */
 export const generateToken = (userId: number): string => {
+  // @ts-ignore
   return jwt.sign({ id: userId }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });

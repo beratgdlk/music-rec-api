@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { prisma } from '../server';
 import bcrypt from 'bcrypt';
+import { Request, Response } from 'express';
+import prisma from '../config/database';
 
 // Tüm kullanıcıları getir
 export const getUsers = async (req: Request, res: Response) => {

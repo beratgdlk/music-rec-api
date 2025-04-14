@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../server';
+import prisma from '../config/database';
 
 // Tüm şarkıları getir
 export const getTracks = async (req: Request, res: Response) => {
