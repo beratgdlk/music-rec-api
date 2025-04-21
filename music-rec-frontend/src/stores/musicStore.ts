@@ -13,10 +13,12 @@ interface Song {
 
 interface MusicState {
   recommendations: Song[];
+  popularSongs: Song[];
   favorites: Song[];
   isLoading: boolean;
   error: string | null;
   fetchRecommendations: () => Promise<void>;
+  fetchPopularSongs: () => Promise<void>;
   fetchFavorites: () => Promise<void>;
   addToFavorites: (songId: string) => Promise<void>;
   removeFromFavorites: (songId: string) => Promise<void>;
@@ -24,6 +26,7 @@ interface MusicState {
 
 export const useMusicStore = create<MusicState>((set, get) => ({
   recommendations: [],
+  popularSongs: [],
   favorites: [],
   isLoading: false,
   error: null,
@@ -32,9 +35,9 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   fetchRecommendations: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('/recommendations');
+      const response = await api.get('/api/recommendations');
       set({
-        recommendations: response.data,
+        recommendations: response.data.data || [],
         isLoading: false
       });
     } catch (error: any) {
@@ -45,13 +48,30 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     }
   },
 
+  // Popüler şarkıları getir
+  fetchPopularSongs: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get('/api/recommendations/popular');
+      set({
+        popularSongs: response.data.data || [],
+        isLoading: false
+      });
+    } catch (error: any) {
+      set({
+        error: error.response?.data?.message || 'Popüler şarkılar yüklenemedi',
+        isLoading: false
+      });
+    }
+  },
+
   // Favori müzikleri getir
   fetchFavorites: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await api.get('/favorites');
+      const response = await api.get('/api/tracks/liked');
       set({
-        favorites: response.data,
+        favorites: response.data.data || [],
         isLoading: false
       });
     } catch (error: any) {
@@ -66,7 +86,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   addToFavorites: async (songId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await api.post('/favorites', { songId });
+      await api.post(`/api/tracks/${songId}/like`);
       // Favorileri güncel tut
       await get().fetchFavorites();
     } catch (error: any) {
@@ -81,7 +101,7 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   removeFromFavorites: async (songId: string) => {
     set({ isLoading: true, error: null });
     try {
-      await api.delete(`/favorites/${songId}`);
+      await api.delete(`/api/tracks/${songId}/like`);
       // Favorileri güncel tut
       await get().fetchFavorites();
     } catch (error: any) {

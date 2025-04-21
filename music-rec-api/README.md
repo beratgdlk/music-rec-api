@@ -1,3 +1,108 @@
+# Müzik Öneri API
+
+Bu API, müzik dinleme ve öneri hizmetleri için backend sağlar. Express, Prisma ve TypeScript ile geliştirilmiştir.
+
+## Özellikler
+
+- Kullanıcı kimlik doğrulama ve yetkilendirme (JWT)
+- Müzik parçaları, albümler ve sanatçılar için API
+- Kişiselleştirilmiş çalma listeleri
+- Collaborative filtering temelli müzik önerileri
+- Derecelendirme ve yorum sistemi
+
+## Kurulum
+
+```bash
+# Bağımlılıkları yükle
+npm install
+
+# Geliştirme ortamında çalıştır
+npm run dev
+
+# Üretim için derle
+npm run build
+
+# Üretim için başlat
+npm start
+```
+
+## Ortam Değişkenleri
+
+.env dosyasını aşağıdaki değişkenlerle ayarlayın:
+
+```
+PORT=3000
+DATABASE_URL="postgresql://user:password@localhost:5432/music_db"
+JWT_SECRET="your-secret-key"
+JWT_EXPIRY="1d"
+NODE_ENV="development"
+```
+
+## API Endpoints
+
+### Kimlik Doğrulama
+
+- `POST /api/auth/register` - Yeni kullanıcı kaydı
+- `POST /api/auth/login` - Kullanıcı girişi
+- `POST /api/auth/logout` - Oturumu kapat
+
+### Kullanıcılar
+
+- `GET /api/users` - Tüm kullanıcıları listele (sadece admin)
+- `GET /api/users/:id` - Kullanıcı detaylarını getir
+- `PUT /api/users/:id` - Kullanıcı bilgilerini güncelle
+- `DELETE /api/users/:id` - Kullanıcıyı sil
+
+### Şarkılar
+
+- `GET /api/tracks` - Tüm şarkıları listele
+- `GET /api/tracks/search` - Şarkı ara
+- `GET /api/tracks/:id` - Şarkı detaylarını getir
+- `GET /api/tracks/liked` - Beğenilen şarkıları getir
+- `POST /api/tracks/:id/like` - Şarkıyı beğen
+- `DELETE /api/tracks/:id/like` - Şarkı beğenisini kaldır
+- `GET /api/tracks/:id/reviews` - Şarkı değerlendirmelerini getir
+- `POST /api/tracks/:id/reviews` - Şarkıya değerlendirme ekle
+
+### Çalma Listeleri
+
+- `GET /api/playlists` - Kullanıcı çalma listelerini getir
+- `GET /api/playlists/:id` - Çalma listesi detaylarını getir
+- `POST /api/playlists` - Yeni çalma listesi oluştur
+- `PUT /api/playlists/:id` - Çalma listesini güncelle
+- `DELETE /api/playlists/:id` - Çalma listesini sil
+- `POST /api/playlists/:id/songs` - Çalma listesine şarkı ekle
+- `DELETE /api/playlists/:id/songs/:songId` - Çalma listesinden şarkı çıkar
+
+### Müzik Önerileri (Yeni!)
+
+- `GET /api/recommendations` - Kişiselleştirilmiş müzik önerileri al
+- `GET /api/recommendations/popular` - Popüler şarkıları getir
+
+## Collaborative Filtering Önerisi Nasıl Çalışır?
+
+API, aşağıdaki temel prensipleri kullanarak öneri sunar:
+
+1. **Kullanıcı tabanlı filtreleme:**
+   - Kullanıcının beğendiği şarkıları belirler
+   - Benzer beğenilere sahip diğer kullanıcıları bulur
+   - Bu kullanıcıların beğendiği, ancak asıl kullanıcının henüz beğenmediği şarkıları önerir
+
+2. **Tür tabanlı öneri:**
+   - Kullanıcı yeterli şarkı beğenmediyse
+   - Kullanıcının beğendiği şarkıların türlerine göre benzer türlerde şarkılar önerilir
+
+3. **Popülerlik bazlı öneri:**
+   - Yeni kullanıcılar için en popüler şarkılar önerilir
+
+Bu basit ama etkili yaklaşım, kullanıcılara ilgi alanlarına göre uygun müzik önerileri sunar ve daha fazla şarkı beğenildikçe öneriler daha kişiselleştirilmiş hale gelir.
+
+## Lisans
+
+MIT
+
+---
+
 # Music API Backend
 
 This project provides a backend API for a Spotify-like application that recommends music and playlists.
@@ -149,38 +254,38 @@ cd music-rec-api
 
 3. PostgreSQL veritabanı oluşturun:
 ```bash
-# PostgreSQL'e bağlanın
+# Connect to PostgreSQL
 psql -U postgres
 
-# PostgreSQL kabuğunda
+# In PostgreSQL shell
 CREATE DATABASE music_api;
 \q
 ```
 
-4. Bağımlılıkları yükleyin:
+4. Install dependencies:
 ```bash
 npm install
 ```
 
-5. Kök dizinde `.env` dosyası oluşturun ve içeriğini şu şekilde düzenleyin:
+5. Create `.env` file in the root directory with the following content:
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/music_api?schema=public"
 JWT_SECRET="your-super-secret-key-here"
 PORT=3001
 ```
-Not: DATABASE_URL'deki 'postgres' şifresini, farklıysa kendi PostgreSQL şifrenizle değiştirin.
+Note: Replace 'postgres' in the DATABASE_URL with your actual PostgreSQL password if different.
 
-6. Veritabanı şemasını yükleyin:
+6. Push the database schema:
 ```bash
 npx prisma db push
 ```
 
-7. Örnek verileri yükleyin:
+7. Seed the database with sample data:
 ```bash
 npm run seed
 ```
 
-8. Geliştirme sunucusunu başlatın:
+8. Start the development server:
 ```bash
 npm run dev
 ```
@@ -224,4 +329,38 @@ API `http://localhost:3001` adresinde çalışmaya başlayacaktır.
 
 ### Kimlik Doğrulama
 
-- `POST /api/auth/register`
+- `POST /api/auth/register` - New user registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/profile` - Get user profile
+
+### Users
+
+- `GET /api/users` - List all users
+- `GET /api/users/:id` - Get a specific user
+- `PUT /api/users/:id` - Update user information
+- `DELETE /api/users/:id` - Delete a user
+
+### Playlists
+
+- `POST /api/playlists` - Create a new playlist
+- `GET /api/playlists` - Get all playlists
+- `GET /api/playlists/:id` - Get a specific playlist
+- `PUT /api/playlists/:id` - Update a playlist
+- `DELETE /api/playlists/:id` - Delete a playlist
+- `POST /api/playlists/:id/songs` - Add a song to a playlist
+- `DELETE /api/playlists/:id/songs/:songId` - Remove a song from a playlist
+
+### Songs
+
+- `GET /api/tracks` - Get all songs
+- `GET /api/tracks/search` - Search for songs
+- `GET /api/tracks/:id` - Get a specific song
+- `POST /api/tracks/:id/like` - Like a song
+- `DELETE /api/tracks/:id/like` - Remove a like from a song
+- `GET /api/tracks/user/liked` - Get liked songs
+- `POST /api/tracks/:id/reviews` - Add a comment to a song
+- `GET /api/tracks/:id/reviews` - Get song comments
+
+## License
+
+This project is licensed under the MIT license.

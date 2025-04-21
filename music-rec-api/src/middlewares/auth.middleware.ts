@@ -24,10 +24,10 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   
   try {
     // Token'ı doğrula
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key') as { userId: number };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key') as { id: number };
     
     // Kullanıcı ID'sini request'e ekle
-    req.userId = decoded.userId;
+    req.userId = decoded.id;
     
     next();
   } catch (error) {

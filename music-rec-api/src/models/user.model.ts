@@ -28,6 +28,7 @@ export interface UserLoginInput {
 // User input for update
 export interface UserUpdateInput {
   username?: string;
+  email?: string;
   name?: string;
   profileImage?: string;
   password?: string;

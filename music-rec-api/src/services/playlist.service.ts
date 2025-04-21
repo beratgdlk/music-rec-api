@@ -1,83 +1,87 @@
 import prisma from '../config/database';
-import { 
-  PlaylistData, 
-  PlaylistWithSongs,
-  PlaylistCreateInput,
-  PlaylistUpdateInput,
-  PlaylistAddTrackInput
-} from '../models/playlist.model';
-import { NotFoundError, ForbiddenError } from '../utils/error.utils';
+import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/error.utils';
 
 /**
  * Çalma listesi servisi
  */
 export const PlaylistService = {
   /**
+   * Yeni çalma listesi oluştur
+   */
+  async createPlaylist(userId: number, playlistData: { name: string, description?: string, isPublic?: boolean, coverImage?: string }) {
+    const { name, description, isPublic, coverImage } = playlistData;
+    
+    if (!name) {
+      throw new BadRequestError('Çalma listesi adı gereklidir');
+    }
+
+    const playlist = await prisma.playlist.create({
+      data: {
+        name,
+        description,
+        isPublic: isPublic === undefined ? true : isPublic,
+        coverImage,
+        owner: {
+          connect: { id: userId },
+        },
+      },
+    });
+
+    return playlist;
+  },
+
+  /**
    * Tüm herkese açık çalma listelerini getir
    */
-  async getPublicPlaylists(limit: number = 20, offset: number = 0): Promise<PlaylistData[]> {
+  async getPublicPlaylists() {
     const playlists = await prisma.playlist.findMany({
       where: { isPublic: true },
-      take: limit,
-      skip: offset,
       include: {
         owner: {
           select: {
             id: true,
             username: true,
-          }
+            name: true,
+            profileImage: true,
+          },
         },
-        songs: {
-          select: {
-            songId: true,
-          }
-        }
+        _count: {
+          select: { songs: true },
+        },
       },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Şarkı sayısını ekle
-    return playlists.map(playlist => ({
-      ...playlist,
-      trackCount: playlist.songs.length,
-      songs: undefined // Gereksiz veriyi temizle
-    }));
+    return playlists;
   },
 
   /**
-   * Kullanıcıya ait çalma listelerini getir
+   * Kullanıcının kendi çalma listelerini getir
    */
-  async getUserPlaylists(userId: number): Promise<PlaylistData[]> {
+  async getUserPlaylists(userId: number) {
     const playlists = await prisma.playlist.findMany({
-      where: { ownerId: userId },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            username: true,
-          }
-        },
-        songs: {
-          select: {
-            songId: true,
-          }
-        }
+      where: {
+        ownerId: userId,
       },
-      orderBy: { updatedAt: 'desc' }
+      include: {
+        _count: {
+          select: { songs: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // Şarkı sayısını ekle
-    return playlists.map(playlist => ({
-      ...playlist,
-      trackCount: playlist.songs.length,
-      songs: undefined // Gereksiz veriyi temizle
-    }));
+    return playlists;
   },
 
   /**
-   * ID'ye göre çalma listesi getir
+   * Belirli bir çalma listesini getir
    */
-  async getPlaylistById(playlistId: number, userId?: number): Promise<PlaylistWithSongs> {
+  async getPlaylistById(playlistId: number, userId: number) {
+    if (isNaN(playlistId)) {
+      throw new BadRequestError('Geçersiz çalma listesi ID formatı');
+    }
+
     const playlist = await prisma.playlist.findUnique({
       where: { id: playlistId },
       include: {
@@ -85,7 +89,9 @@ export const PlaylistService = {
           select: {
             id: true,
             username: true,
-          }
+            name: true,
+            profileImage: true,
+          },
         },
         songs: {
           include: {
@@ -95,264 +101,267 @@ export const PlaylistService = {
                   select: {
                     id: true,
                     name: true,
-                  }
+                  },
                 },
                 album: {
                   select: {
                     id: true,
                     title: true,
                     coverImage: true,
-                  }
-                }
-              }
-            }
+                  },
+                },
+              },
+            },
           },
-          orderBy: { order: 'asc' }
-        }
-      }
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     if (!playlist) {
       throw new NotFoundError('Çalma listesi bulunamadı');
     }
 
-    // Herkese açık değilse ve kullanıcı sahibi değilse erişimi reddet
-    if (!playlist.isPublic && (!userId || playlist.ownerId !== userId)) {
+    // Çalma listesi gizli ve sahibi değilse erişimi engelle
+    if (!playlist.isPublic && playlist.owner.id !== userId) {
       throw new ForbiddenError('Bu çalma listesine erişim izniniz yok');
     }
 
-    // Şarkıları düzenle
-    const formattedSongs = playlist.songs.map(item => ({
-      ...item.song,
-      order: item.order
-    }));
-
-    return {
-      ...playlist,
-      songs: formattedSongs
-    };
-  },
-
-  /**
-   * Yeni çalma listesi oluştur
-   */
-  async createPlaylist(userId: number, playlistData: PlaylistCreateInput): Promise<PlaylistData> {
-    const newPlaylist = await prisma.playlist.create({
-      data: {
-        name: playlistData.name,
-        description: playlistData.description,
-        isPublic: playlistData.isPublic ?? true,
-        coverImage: playlistData.coverImage,
-        ownerId: userId,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            username: true,
-          }
-        }
-      }
-    });
-
-    return {
-      ...newPlaylist,
-      trackCount: 0
-    };
+    return playlist;
   },
 
   /**
    * Çalma listesini güncelle
    */
   async updatePlaylist(
-    playlistId: number,
-    userId: number,
-    updateData: PlaylistUpdateInput
-  ): Promise<PlaylistData> {
-    // Çalma listesini bul
+    playlistId: number, 
+    userId: number, 
+    updateData: { name?: string, description?: string, isPublic?: boolean, coverImage?: string }
+  ) {
+    if (isNaN(playlistId)) {
+      throw new BadRequestError('Geçersiz çalma listesi ID formatı');
+    }
+
+    // Çalma listesinin sahibi olduğunu kontrol et
     const playlist = await prisma.playlist.findUnique({
       where: { id: playlistId },
+      select: { ownerId: true },
     });
 
     if (!playlist) {
       throw new NotFoundError('Çalma listesi bulunamadı');
     }
 
-    // Sadece sahibinin güncellemesine izin ver
     if (playlist.ownerId !== userId) {
       throw new ForbiddenError('Bu çalma listesini düzenleme yetkiniz yok');
     }
 
-    // Güncelle
+    // Çalma listesini güncelle
     const updatedPlaylist = await prisma.playlist.update({
       where: { id: playlistId },
       data: updateData,
-      include: {
-        owner: {
-          select: {
-            id: true,
-            username: true,
-          }
-        },
-        songs: {
-          select: {
-            songId: true,
-          }
-        }
-      }
     });
 
-    return {
-      ...updatedPlaylist,
-      trackCount: updatedPlaylist.songs.length,
-      songs: undefined
-    };
+    return updatedPlaylist;
   },
 
   /**
    * Çalma listesini sil
    */
-  async deletePlaylist(playlistId: number, userId: number): Promise<void> {
-    // Çalma listesini bul
+  async deletePlaylist(playlistId: number, userId: number) {
+    if (isNaN(playlistId)) {
+      throw new BadRequestError('Geçersiz çalma listesi ID formatı');
+    }
+
+    // Çalma listesinin sahibi olduğunu kontrol et
     const playlist = await prisma.playlist.findUnique({
       where: { id: playlistId },
+      select: { ownerId: true },
     });
 
     if (!playlist) {
       throw new NotFoundError('Çalma listesi bulunamadı');
     }
 
-    // Sadece sahibinin silmesine izin ver
     if (playlist.ownerId !== userId) {
       throw new ForbiddenError('Bu çalma listesini silme yetkiniz yok');
     }
 
-    // Transaction kullanarak hem şarkıları hem de çalma listesini sil
-    await prisma.$transaction(async (tx) => {
-      // Önce ilişkili şarkıları sil
-      await tx.songPlaylist.deleteMany({
-        where: { playlistId }
-      });
-
-      // Sonra çalma listesini sil
-      await tx.playlist.delete({
-        where: { id: playlistId }
-      });
+    // Önce çalma listesindeki şarkıları sil (cascade delete ile otomatik olarak silinir)
+    await prisma.playlist.delete({
+      where: { id: playlistId },
     });
   },
 
   /**
    * Çalma listesine şarkı ekle
    */
-  async addTrackToPlaylist(userId: number, data: PlaylistAddTrackInput): Promise<void> {
-    const { playlistId, trackId, order } = data;
+  async addSongToPlaylist(playlistId: number, songId: number, userId: number) {
+    if (isNaN(playlistId) || isNaN(songId)) {
+      throw new BadRequestError('Geçersiz ID formatı');
+    }
 
-    // Çalma listesini bul
+    // Çalma listesinin sahibi olduğunu kontrol et
     const playlist = await prisma.playlist.findUnique({
       where: { id: playlistId },
+      select: { ownerId: true },
     });
 
     if (!playlist) {
       throw new NotFoundError('Çalma listesi bulunamadı');
     }
 
-    // Sadece sahibinin eklemesine izin ver
     if (playlist.ownerId !== userId) {
       throw new ForbiddenError('Bu çalma listesine şarkı ekleme yetkiniz yok');
     }
 
-    // Şarkının varlığını kontrol et
-    const track = await prisma.song.findUnique({
-      where: { id: trackId },
+    // Şarkının var olduğunu kontrol et
+    const song = await prisma.song.findUnique({
+      where: { id: songId },
     });
 
-    if (!track) {
+    if (!song) {
       throw new NotFoundError('Şarkı bulunamadı');
     }
 
-    await prisma.$transaction(async (tx) => {
-      // Şarkı zaten eklenmişse güncelle
-      const existingEntry = await tx.songPlaylist.findUnique({
-        where: {
-          playlistId_songId: {
-            playlistId,
-            songId: trackId,
-          }
-        }
-      });
-
-      if (existingEntry) {
-        if (order) {
-          // Sırayı güncelle
-          await tx.songPlaylist.update({
-            where: {
-              playlistId_songId: {
-                playlistId,
-                songId: trackId,
-              }
-            },
-            data: { order }
-          });
-        }
-        return;
-      }
-
-      // Mevcut son sırayı bul
-      let nextOrder = 1;
-      if (!order) {
-        const lastEntry = await tx.songPlaylist.findFirst({
-          where: { playlistId },
-          orderBy: { order: 'desc' },
-        });
-
-        if (lastEntry) {
-          nextOrder = lastEntry.order + 1;
-        }
-      }
-
-      // Şarkıyı ekle
-      await tx.songPlaylist.create({
-        data: {
+    // Şarkının zaten çalma listesinde olup olmadığını kontrol et
+    const existingSong = await prisma.songPlaylist.findUnique({
+      where: {
+        playlistId_songId: {
           playlistId,
-          songId: trackId,
-          order: order || nextOrder,
-        }
-      });
+          songId,
+        },
+      },
     });
+
+    if (existingSong) {
+      throw new BadRequestError('Bu şarkı zaten çalma listesinde mevcut');
+    }
+
+    // Çalma listesindeki son sıra numarasını bul
+    const lastOrderItem = await prisma.songPlaylist.findFirst({
+      where: { playlistId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+
+    const nextOrder = lastOrderItem ? lastOrderItem.order + 1 : 1;
+
+    // Şarkıyı çalma listesine ekle
+    const playlistSong = await prisma.songPlaylist.create({
+      data: {
+        playlist: {
+          connect: { id: playlistId },
+        },
+        song: {
+          connect: { id: songId },
+        },
+        order: nextOrder,
+      },
+      include: {
+        song: {
+          include: {
+            artist: true,
+            album: true,
+          },
+        },
+      },
+    });
+
+    return playlistSong;
   },
 
   /**
    * Çalma listesinden şarkı kaldır
    */
-  async removeTrackFromPlaylist(userId: number, playlistId: number, trackId: number): Promise<void> {
-    // Çalma listesini bul
+  async removeSongFromPlaylist(playlistId: number, songId: number, userId: number) {
+    if (isNaN(playlistId) || isNaN(songId)) {
+      throw new BadRequestError('Geçersiz ID formatı');
+    }
+
+    // Çalma listesinin sahibi olduğunu kontrol et
     const playlist = await prisma.playlist.findUnique({
       where: { id: playlistId },
+      select: { ownerId: true },
     });
 
     if (!playlist) {
       throw new NotFoundError('Çalma listesi bulunamadı');
     }
 
-    // Sadece sahibinin kaldırmasına izin ver
     if (playlist.ownerId !== userId) {
       throw new ForbiddenError('Bu çalma listesinden şarkı kaldırma yetkiniz yok');
     }
 
-    // Transaction kullanarak şarkıyı kaldır
-    try {
-      await prisma.$transaction(async (tx) => {
-        await tx.songPlaylist.delete({
-          where: {
-            playlistId_songId: {
-              playlistId,
-              songId: trackId,
-            }
-          }
-        });
-      });
-    } catch (error) {
-      // Şarkı zaten listede yoksa sessizce devam et
+    // Şarkının çalma listesinde olduğunu kontrol et
+    const playlistSong = await prisma.songPlaylist.findUnique({
+      where: {
+        playlistId_songId: {
+          playlistId,
+          songId,
+        },
+      },
+    });
+
+    if (!playlistSong) {
+      throw new NotFoundError('Bu şarkı çalma listesinde bulunamadı');
     }
+
+    // Şarkıyı çalma listesinden kaldır
+    await prisma.songPlaylist.delete({
+      where: {
+        playlistId_songId: {
+          playlistId,
+          songId,
+        },
+      },
+    });
+
+    // Sıralama düzenini güncelle
+    const remainingSongs = await prisma.songPlaylist.findMany({
+      where: { playlistId },
+      orderBy: { order: 'asc' },
+    });
+
+    // Sıralamayı yeniden düzenle
+    for (let i = 0; i < remainingSongs.length; i++) {
+      await prisma.songPlaylist.update({
+        where: {
+          playlistId_songId: {
+            playlistId,
+            songId: remainingSongs[i].songId,
+          },
+        },
+        data: { order: i + 1 },
+      });
+    }
+  },
+
+  /**
+   * Öne çıkan çalma listelerini getir
+   */
+  async getFeaturedPlaylists() {
+    // Bu fonksiyon, en çok şarkı içeren veya en popüler çalma listelerini getirebilir
+    // Şimdilik sadece public çalma listelerinden ilk 5'ini getiriyoruz
+    const featuredPlaylists = await prisma.playlist.findMany({
+      where: { isPublic: true },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        _count: {
+          select: { songs: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
+    return featuredPlaylists;
   },
 }; 

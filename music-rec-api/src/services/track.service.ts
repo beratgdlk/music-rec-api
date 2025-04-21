@@ -1,262 +1,384 @@
 import prisma from '../config/database';
-import { 
-  TrackData, 
-  TrackWithDetails, 
-  TrackQueryParams,
-  TrackReviewInput
-} from '../models/track.model';
-import { NotFoundError, BadRequestError } from '../utils/error.utils';
+import { BadRequestError, NotFoundError } from '../utils/error.utils';
+import { TrackQueryParams, TrackReviewInput } from '../models/track.model';
+import logger from '../utils/logger.utils';
 
 /**
  * Parça servisi
  */
 export const TrackService = {
   /**
-   * Tüm parçaları getir (sayfalama ve filtreleme destekler)
+   * Tüm parçaları getir
    */
-  async getAllTracks(params: TrackQueryParams): Promise<TrackData[]> {
-    const { 
-      limit = 20, 
-      offset = 0, 
-      sort = 'title',
-      order = 'asc',
-      artistId,
-      albumId 
-    } = params;
-
-    // Filtreleme şartlarını oluştur
-    const where: any = {};
-    
-    if (artistId) {
-      where.artistId = artistId;
+  async getTracks(limit: number = 10, page: number = 1, genre?: string) {
+    // Parametrelerin geçerli olduğundan emin ol
+    if (isNaN(limit) || isNaN(page) || limit < 1 || page < 1) {
+      throw new BadRequestError('Geçersiz limit veya sayfa numarası');
     }
     
-    if (albumId) {
-      where.albumId = albumId;
-    }
-
-    // Parçaları al
-    const tracks = await prisma.song.findMany({
-      where,
-      take: limit,
-      skip: offset,
-      orderBy: {
-        [sort]: order,
-      },
-      include: {
-        artist: {
-          select: {
-            id: true,
-            name: true,
+    const skip = (page - 1) * limit;
+    
+    // Tür filtresi ekleme
+    const where = genre 
+      ? {
+          album: {
+            genres: {
+              some: {
+                genre: {
+                  name: {
+                    equals: genre,
+                    mode: 'insensitive' as const
+                  }
+                }
+              }
+            }
+          }
+        } 
+      : {};
+    
+    const [songs, total] = await Promise.all([
+      prisma.song.findMany({
+        where,
+        include: {
+          artist: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          album: {
+            select: {
+              id: true,
+              title: true,
+              coverImage: true
+            }
+          },
+          _count: {
+            select: {
+              likedBy: true,
+              reviews: true
+            }
           }
         },
-        album: {
-          select: {
-            id: true,
-            title: true,
-            coverImage: true,
-          }
-        }
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.song.count({ where })
+    ]);
+    
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      data: songs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages
       }
-    });
-
-    return tracks;
+    };
   },
-
+  
   /**
-   * ID'ye göre parça getir
+   * Belirli bir parçayı getir
    */
-  async getTrackById(id: number): Promise<TrackWithDetails> {
-    const track = await prisma.song.findUnique({
+  async getTrackById(id: number) {
+    if (isNaN(id)) {
+      throw new BadRequestError('Geçersiz şarkı ID formatı');
+    }
+    
+    const song = await prisma.song.findUnique({
       where: { id },
       include: {
-        artist: {
-          select: {
-            id: true,
-            name: true,
-          }
-        },
+        artist: true,
         album: {
-          select: {
-            id: true,
-            title: true,
-            coverImage: true,
-          }
-        },
-        reviews: {
           include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                profileImage: true,
+            genres: {
+              include: {
+                genre: true
               }
             }
           }
         },
-        ratings: {
+        _count: {
           select: {
-            id: true,
-            score: true,
-            userId: true,
+            likedBy: true,
+            reviews: true,
+            playlists: true
           }
         }
       }
     });
-
-    if (!track) {
-      throw new NotFoundError('Parça bulunamadı');
+    
+    if (!song) {
+      throw new NotFoundError('Şarkı bulunamadı');
     }
-
-    return track;
+    
+    return song;
   },
-
+  
   /**
-   * Parçalar içinde arama yap
+   * Parçaları arama
    */
-  async searchTracks(query: string, limit: number = 20): Promise<TrackData[]> {
-    if (!query || query.trim() === '') {
-      throw new BadRequestError('Arama sorgusu gereklidir');
+  async searchTracks(query: string, limit: number = 10, page: number = 1) {
+    if (!query) {
+      throw new BadRequestError('Arama sorgusu gerekli');
     }
-
-    // Parçalarda arama yap
-    const tracks = await prisma.song.findMany({
-      where: {
-        OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { 
-            artist: { 
-              name: { contains: query, mode: 'insensitive' } 
-            } 
+    
+    // Parametrelerin geçerli olduğundan emin ol
+    if (isNaN(limit) || isNaN(page) || limit < 1 || page < 1) {
+      throw new BadRequestError('Geçersiz limit veya sayfa numarası');
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const searchQuery = {
+      OR: [
+        { title: { contains: query, mode: 'insensitive' as const } },
+        { artist: { name: { contains: query, mode: 'insensitive' as const } } },
+        { album: { title: { contains: query, mode: 'insensitive' as const } } }
+      ]
+    };
+    
+    const [songs, total] = await Promise.all([
+      prisma.song.findMany({
+        where: searchQuery,
+        include: {
+          artist: {
+            select: {
+              id: true,
+              name: true
+            }
           },
-          { 
-            album: { 
-              title: { contains: query, mode: 'insensitive' } 
-            } 
-          }
-        ]
-      },
-      take: limit,
-      include: {
-        artist: {
-          select: {
-            id: true,
-            name: true,
+          album: {
+            select: {
+              id: true,
+              title: true,
+              coverImage: true
+            }
           }
         },
-        album: {
-          select: {
-            id: true,
-            title: true,
-            coverImage: true,
-          }
-        }
+        orderBy: { title: 'asc' },
+        skip,
+        take: limit
+      }),
+      prisma.song.count({ where: searchQuery })
+    ]);
+    
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      data: songs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        query
       }
-    });
-
-    return tracks;
+    };
   },
-
+  
   /**
-   * Parçaya ilgili diğer parçaları getir
+   * Parçayı beğen
    */
-  async getRelatedTracks(trackId: number, limit: number = 5): Promise<TrackData[]> {
-    // Önce parçayı bul
-    const track = await prisma.song.findUnique({
-      where: { id: trackId },
+  async likeTrack(userId: number, trackId: number) {
+    // Önce şarkının var olduğunu kontrol et
+    const song = await prisma.song.findUnique({
+      where: { id: trackId }
     });
-
-    if (!track) {
-      throw new NotFoundError('Parça bulunamadı');
+    
+    if (!song) {
+      throw new NotFoundError('Şarkı bulunamadı');
     }
-
-    // Aynı sanatçı veya albümden parçaları getir
-    const relatedTracks = await prisma.song.findMany({
+    
+    // Kullanıcının bu şarkıyı daha önce beğenip beğenmediğini kontrol et
+    const existingLike = await prisma.likedSong.findUnique({
       where: {
-        OR: [
-          { artistId: track.artistId },
-          { albumId: track.albumId }
-        ],
-        NOT: {
-          id: trackId // Kendisini hariç tut
-        }
-      },
-      take: limit,
-      include: {
-        artist: {
-          select: {
-            id: true,
-            name: true,
-          }
-        },
-        album: {
-          select: {
-            id: true,
-            title: true,
-            coverImage: true,
-          }
+        userId_songId: {
+          userId,
+          songId: trackId
         }
       }
     });
-
-    return relatedTracks;
-  },
-
-  /**
-   * Parçaya inceleme ekle
-   */
-  async addReview(userId: number, reviewData: TrackReviewInput): Promise<any> {
-    const { trackId, content } = reviewData;
-
-    // Parçanın varlığını kontrol et
-    const track = await prisma.song.findUnique({
-      where: { id: trackId },
-    });
-
-    if (!track) {
-      throw new NotFoundError('Parça bulunamadı');
+    
+    if (existingLike) {
+      throw new BadRequestError('Bu şarkıyı zaten beğendiniz');
     }
-
-    // Kullanıcının bu parça için zaten bir incelemesi var mı kontrol et
+    
+    // Beğeniyi kaydet
+    await prisma.likedSong.create({
+      data: {
+        user: {
+          connect: { id: userId }
+        },
+        song: {
+          connect: { id: trackId }
+        }
+      }
+    });
+  },
+  
+  /**
+   * Parça beğenisini kaldır
+   */
+  async unlikeTrack(userId: number, trackId: number) {
+    // Kullanıcının bu şarkıyı daha önce beğenip beğenmediğini kontrol et
+    const existingLike = await prisma.likedSong.findUnique({
+      where: {
+        userId_songId: {
+          userId,
+          songId: trackId
+        }
+      }
+    });
+    
+    if (!existingLike) {
+      throw new BadRequestError('Bu şarkıyı beğenmediniz');
+    }
+    
+    // Beğeniyi kaldır
+    await prisma.likedSong.delete({
+      where: {
+        userId_songId: {
+          userId,
+          songId: trackId
+        }
+      }
+    });
+  },
+  
+  /**
+   * Beğenilen parçaları getir
+   */
+  async getLikedTracks(userId: number, limit: number = 20, page: number = 1) {
+    const skip = (page - 1) * limit;
+    
+    const [likedSongs, total] = await Promise.all([
+      prisma.likedSong.findMany({
+        where: { userId },
+        include: {
+          song: {
+            include: {
+              artist: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
+              album: {
+                select: {
+                  id: true,
+                  title: true,
+                  coverImage: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { likedAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.likedSong.count({ where: { userId } })
+    ]);
+    
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      data: likedSongs.map((like: any) => like.song),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages
+      }
+    };
+  },
+  
+  /**
+   * Parça değerlendirmesi ekle
+   */
+  async addTrackReview(userId: number, reviewData: TrackReviewInput & { rating?: number }) {
+    const { trackId, content, rating } = reviewData;
+    
+    // Parçanın var olduğunu kontrol et
+    const song = await prisma.song.findUnique({
+      where: { id: trackId }
+    });
+    
+    if (!song) {
+      throw new NotFoundError('Şarkı bulunamadı');
+    }
+    
+    // Kullanıcının bu parçayı daha önce değerlendirip değerlendirmediğini kontrol et
     const existingReview = await prisma.review.findFirst({
       where: {
         userId,
         songId: trackId
       }
     });
-
+    
     if (existingReview) {
-      // Mevcut incelemeyi güncelle
-      return await prisma.review.update({
-        where: { id: existingReview.id },
-        data: { content },
-      });
+      throw new BadRequestError('Bu şarkıyı zaten değerlendirdiniz');
     }
-
-    // Yeni inceleme oluştur
-    return await prisma.review.create({
+    
+    // Değerlendirmeyi oluştur
+    const review = await prisma.review.create({
       data: {
         content,
-        userId,
-        songId: trackId,
+        user: {
+          connect: { id: userId }
+        },
+        song: {
+          connect: { id: trackId }
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            profileImage: true
+          }
+        }
       }
     });
-  },
-
-  /**
-   * Parça incelemelerini getir
-   */
-  async getTrackReviews(trackId: number): Promise<any[]> {
-    // Parçanın varlığını kontrol et
-    const track = await prisma.song.findUnique({
-      where: { id: trackId },
-    });
-
-    if (!track) {
-      throw new NotFoundError('Parça bulunamadı');
+    
+    // Eğer rating verilmişse, puanlama da ekle
+    if (rating !== undefined && rating >= 1 && rating <= 5) {
+      await prisma.rating.create({
+        data: {
+          score: rating,
+          user: {
+            connect: { id: userId }
+          },
+          song: {
+            connect: { id: trackId }
+          }
+        }
+      });
     }
-
-    // İncelemeleri getir
+    
+    return review;
+  },
+  
+  /**
+   * Parça değerlendirmelerini getir
+   */
+  async getTrackReviews(trackId: number) {
+    // Parçanın var olduğunu kontrol et
+    const song = await prisma.song.findUnique({
+      where: { id: trackId }
+    });
+    
+    if (!song) {
+      throw new NotFoundError('Şarkı bulunamadı');
+    }
+    
+    // Değerlendirmeleri getir
     const reviews = await prisma.review.findMany({
       where: { songId: trackId },
       include: {
@@ -264,99 +386,14 @@ export const TrackService = {
           select: {
             id: true,
             username: true,
-            profileImage: true,
+            name: true,
+            profileImage: true
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
-
+    
     return reviews;
-  },
-
-  /**
-   * Parçayı beğen
-   */
-  async likeTrack(userId: number, trackId: number): Promise<void> {
-    // Parçanın varlığını kontrol et
-    const track = await prisma.song.findUnique({
-      where: { id: trackId },
-    });
-
-    if (!track) {
-      throw new NotFoundError('Parça bulunamadı');
-    }
-
-    // Zaten beğenilmiş mi kontrol et
-    const existingLike = await prisma.likedSong.findUnique({
-      where: {
-        userId_songId: {
-          userId,
-          songId: trackId,
-        }
-      }
-    });
-
-    if (existingLike) {
-      return; // Zaten beğenilmiş
-    }
-
-    // Beğeniyi ekle
-    await prisma.likedSong.create({
-      data: {
-        userId,
-        songId: trackId,
-      }
-    });
-  },
-
-  /**
-   * Parça beğenisini kaldır
-   */
-  async unlikeTrack(userId: number, trackId: number): Promise<void> {
-    // Beğeniyi kaldır
-    try {
-      await prisma.likedSong.delete({
-        where: {
-          userId_songId: {
-            userId,
-            songId: trackId,
-          }
-        }
-      });
-    } catch (error) {
-      // Beğeni yok ise hata verme
-    }
-  },
-
-  /**
-   * Kullanıcının beğendiği parçaları getir
-   */
-  async getLikedTracks(userId: number): Promise<TrackData[]> {
-    const likedTracks = await prisma.likedSong.findMany({
-      where: { userId },
-      include: {
-        song: {
-          include: {
-            artist: {
-              select: {
-                id: true,
-                name: true,
-              }
-            },
-            album: {
-              select: {
-                id: true,
-                title: true,
-                coverImage: true,
-              }
-            }
-          }
-        }
-      },
-      orderBy: { likedAt: 'desc' }
-    });
-
-    return likedTracks.map(liked => liked.song);
-  },
+  }
 }; 

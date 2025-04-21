@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import trackRoutes from './routes/track.routes';
 import playlistRoutes from './routes/playlist.routes';
+import recommendationRoutes from './routes/recommendation.routes';
 
 // Middlewares
 import { corsMiddleware } from './middlewares/cors.middleware';
@@ -31,6 +32,11 @@ app.use(cookieParser());
 app.use(requestLogger);
 app.use(apiLimiter);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Service is healthy' });
+});
+
 // Auth routes with stricter rate limiting
 app.use('/api/auth', authLimiter, authRoutes);
 
@@ -42,6 +48,9 @@ app.use('/api/tracks', trackRoutes);
 
 // Playlist routes 
 app.use('/api/playlists', playlistRoutes);
+
+// Recommendation routes
+app.use('/api/recommendations', recommendationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
