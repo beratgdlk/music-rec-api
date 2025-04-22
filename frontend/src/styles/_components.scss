@@ -1,0 +1,91 @@
+@import 'variables';
+
+// Form kontrolleri
+.input {
+  width: 100%;
+  background-color: $color-secondary;
+  border: 1px solid #333333;
+  border-radius: $radius-md;
+  padding: $spacing-2 $spacing-4;
+  color: $color-text;
+  
+  &::placeholder {
+    color: $color-text-secondary;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: 0 0 0 2px $color-primary;
+  }
+}
+
+// Butonlar
+.btn-primary {
+  background-color: $color-primary;
+  color: #000000;
+  font-weight: 500;
+  border-radius: $radius-md;
+  transition: $transition-base;
+  
+  &:hover {
+    background-color: #F59E0B;
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #F59E0B, 0 0 0 4px $color-background;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: $color-text;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+  border-radius: $radius-md;
+  transition: $transition-base;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2), 0 0 0 4px $color-background;
+  }
+}
+
+// Kartlar
+.card {
+  background-color: $color-card;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  transition: $transition-base;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+// Menüler
+.menu {
+  background-color: $color-card;
+  border-radius: $radius-md;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  &-item {
+    padding: $spacing-2 $spacing-4;
+    transition: $transition-base;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+} 

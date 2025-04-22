@@ -1,0 +1,85 @@
+/* Tailwind direktifleri */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global stiller */
+body {
+  @apply bg-black text-white antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold leading-tight;
+}
+
+a {
+  @apply text-[#D97706] no-underline transition-colors duration-200;
+}
+
+a:hover {
+  @apply underline;
+}
+
+/* Yardımcı sınıflar */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-[#D97706] to-[#F59E0B] bg-clip-text text-transparent;
+}
+
+// SCSS modülleri
+@import './styles/variables';
+@import './styles/animations';
+@import './styles/components';
+
+// Global stiller
+@layer base {
+  html {
+    font-family: $font-family-base;
+  }
+  
+  body {
+    background-color: $color-background;
+    color: $color-text;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  
+  a {
+    color: $color-primary;
+    text-decoration: none;
+    transition: $transition-base;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Yardımcı sınıflar
+.container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 $spacing-4;
+  
+  @media (min-width: 640px) {
+    max-width: 640px;
+  }
+  
+  @media (min-width: 768px) {
+    max-width: 768px;
+  }
+  
+  @media (min-width: 1024px) {
+    max-width: 1024px;
+  }
+  
+  @media (min-width: 1280px) {
+    max-width: 1280px;
+  }
+} 
