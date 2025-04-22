@@ -1,4 +1,4 @@
-import { Song as PrismaSong, Review, Rating } from '@prisma/client';
+import { Song as PrismaSong, Rating, Review } from "@prisma/client";
 
 // Track data including relationships
 export interface TrackData extends PrismaSong {
@@ -27,12 +27,12 @@ export interface TrackQueryParams {
   search?: string;
   artistId?: number;
   albumId?: number;
-  sort?: 'title' | 'releaseDate' | 'rating';
-  order?: 'asc' | 'desc';
+  sort?: "title" | "releaseDate" | "rating";
+  order?: "asc" | "desc";
 }
 
 // Track review input
 export interface TrackReviewInput {
   content: string;
   trackId: number;
-} 
+}

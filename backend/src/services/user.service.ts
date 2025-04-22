@@ -1,7 +1,7 @@
 import prisma from '../config/database';
-import { 
-  UserData, 
-  UserRegisterInput, 
+import {
+  UserData,
+  UserRegisterInput,
   UserUpdateInput
 } from '../models/user.model';
 import { hashPassword } from '../utils/auth.utils';

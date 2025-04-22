@@ -167,7 +167,7 @@ export const RecommendationService = {
         where: { userId },
         select: { songId: true }
       });
-      
+
       const userLikedSongIds = userLikes.map(like => like.songId);
 
       return prisma.song.findMany({
@@ -208,7 +208,7 @@ export const RecommendationService = {
         take: limit
       });
     }
-    
+
     // Hiçbir tür bulunamazsa, popüler şarkıları döndür
     return this.getPopularSongs(limit);
   }

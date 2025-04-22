@@ -1,4 +1,4 @@
-import { Playlist as PrismaPlaylist, Song } from '@prisma/client';
+import { Playlist as PrismaPlaylist, Song } from "@prisma/client";
 
 // Playlist data with relationships
 export interface PlaylistData extends PrismaPlaylist {
@@ -40,4 +40,4 @@ export interface PlaylistAddTrackInput {
   trackId: number;
   playlistId: number;
   order?: number;
-} 
+}

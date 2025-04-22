@@ -3,7 +3,7 @@
  */
 export class ApiError extends Error {
   statusCode: number;
-  
+
   constructor(message: string, statusCode: number) {
     super(message);
     this.statusCode = statusCode;
@@ -16,7 +16,7 @@ export class ApiError extends Error {
  * Not Found Error (404)
  */
 export class NotFoundError extends ApiError {
-  constructor(message = 'Resource not found') {
+  constructor(message = "Resource not found") {
     super(message, 404);
   }
 }
@@ -25,7 +25,7 @@ export class NotFoundError extends ApiError {
  * Bad Request Error (400)
  */
 export class BadRequestError extends ApiError {
-  constructor(message = 'Bad request') {
+  constructor(message = "Bad request") {
     super(message, 400);
   }
 }
@@ -34,7 +34,7 @@ export class BadRequestError extends ApiError {
  * Unauthorized Error (401)
  */
 export class UnauthorizedError extends ApiError {
-  constructor(message = 'Unauthorized') {
+  constructor(message = "Unauthorized") {
     super(message, 401);
   }
 }
@@ -43,7 +43,7 @@ export class UnauthorizedError extends ApiError {
  * Forbidden Error (403)
  */
 export class ForbiddenError extends ApiError {
-  constructor(message = 'Forbidden') {
+  constructor(message = "Forbidden") {
     super(message, 403);
   }
-} 
+}

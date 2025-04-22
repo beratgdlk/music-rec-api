@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express-serve-static-core';
-import { ApiError } from '../utils/error.utils';
-import { NODE_ENV } from '../config/env';
-import logger from '../utils/logger.utils';
+import { NextFunction, Request, Response } from "express-serve-static-core";
+import { NODE_ENV } from "../config/env";
+import { ApiError } from "../utils/error.utils";
+import logger from "../utils/logger.utils";
 
 /**
  * Global error handling middleware
@@ -13,15 +13,17 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   // Hatayı logla
-  logger.error(`${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`);
-  
+  logger.error(
+    `${err.message} - ${req.originalUrl} - ${req.method} - ${req.ip}`
+  );
+
   if (err.stack) {
     logger.debug(err.stack);
   }
 
   // Default error
   let statusCode = 500;
-  let message = 'Sunucu hatası';
+  let message = "Sunucu hatası";
   let stack = err.stack;
 
   // If known API error
@@ -36,7 +38,7 @@ export const errorHandler = (
     error: {
       message,
       // Only include stack in development
-      ...(NODE_ENV === 'development' && { stack }),
+      ...(NODE_ENV === "development" && { stack }),
     },
   });
 };
@@ -48,4 +50,4 @@ export const notFound = (req: Request, res: Response, next: NextFunction) => {
   logger.warn(`404 - ${req.originalUrl} - ${req.method} - ${req.ip}`);
   const error = new ApiError(`Bulunamadı - ${req.originalUrl}`, 404);
   next(error);
-}; 
+};

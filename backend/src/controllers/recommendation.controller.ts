@@ -5,22 +5,23 @@ import logger from '../utils/logger.utils';
 /**
  * Kullanıcı için şarkı önerileri al
  */
-export const getRecommendations = async (req: Request, res: Response) => {
+export const getRecommendations = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.userId;
     const { limit = '10' } = req.query;
-    
+
     logger.info(`RecommendationController: userId=${userId}, auth header: ${req.headers.authorization}`);
-    
+
     if (!userId) {
-      return res.status(401).json({ error: 'Yetkilendirme hatası' });
+      res.status(401).json({ error: 'Yetkilendirme hatası' });
+      return
     }
-    
+
     // Parametreyi sayıya dönüştür
     const limitNum = parseInt(limit as string);
-    
+
     const recommendations = await RecommendationService.getRecommendationsForUser(userId, limitNum);
-    
+
     res.json({
       data: recommendations,
       meta: {
@@ -39,12 +40,12 @@ export const getRecommendations = async (req: Request, res: Response) => {
 export const getPopular = async (req: Request, res: Response) => {
   try {
     const { limit = '10' } = req.query;
-    
+
     // Parametreyi sayıya dönüştür
     const limitNum = parseInt(limit as string);
-    
+
     const popularSongs = await RecommendationService.getPopularSongs(limitNum);
-    
+
     res.json({
       data: popularSongs,
       meta: {

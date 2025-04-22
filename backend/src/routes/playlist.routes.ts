@@ -10,7 +10,10 @@ import {
   removeSongFromPlaylist,
   updatePlaylist,
 } from "../controllers/playlist.controller";
-import { authenticate, authorizePlaylistOwner } from "../middlewares/auth.middleware";
+import {
+  authenticate,
+  authorizePlaylistOwner,
+} from "../middlewares/auth.middleware";
 const router = express.Router();
 
 // All routes require authentication

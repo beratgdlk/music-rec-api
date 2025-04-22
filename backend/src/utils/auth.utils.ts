@@ -1,7 +1,7 @@
-import bcrypt from 'bcrypt';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
-import { JWT_EXPIRES_IN, JWT_SECRET } from '../config/env';
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/env";
 
 /**
  * Generate JWT token (access token)
@@ -17,7 +17,7 @@ export const generateToken = (userId: number): string => {
  * Generate refresh token
  */
 export const generateRefreshToken = (): string => {
-  return crypto.randomBytes(40).toString('hex');
+  return crypto.randomBytes(40).toString("hex");
 };
 
 /**
